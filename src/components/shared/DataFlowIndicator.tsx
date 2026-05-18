@@ -77,14 +77,16 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
     if (!layer && upstream.length === 0 && downstream.length === 0) {
         if (compact) {
             return (
-                <div className="flex flex-col items-center gap-1 text-slate-500" title="No data connections for this stage">
-                    <GitCompareArrows size={18} className="opacity-40" />
+                <div className="flex flex-col items-center gap-1 cursor-pointer group" title="Data Flow — No connections for this stage">
+                    <div className="w-10 h-10 rounded-md flex items-center justify-center bg-cyan-500/10 border border-cyan-500/20 group-hover:border-cyan-400/40 group-hover:bg-cyan-500/20 transition-all">
+                        <GitCompareArrows size={18} className="text-cyan-400 animate-pulse" />
+                    </div>
                 </div>
             );
         }
         return (
-            <div className="flex items-center gap-2 text-xs text-slate-500 italic px-2 py-1">
-                <GitCompareArrows size={14} className="opacity-50" />
+            <div className="flex items-center gap-2 text-xs text-cyan-400/70 px-2 py-1">
+                <GitCompareArrows size={14} className="text-cyan-400" />
                 No data connections for this stage.
             </div>
         );
@@ -148,8 +150,10 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
         const total = greenCount + yellowCount + redCount;
         if (total === 0) {
             return (
-                <div className="flex flex-col items-center gap-1 text-slate-500" title="No active data connections">
-                    <GitCompareArrows size={18} className="opacity-40" />
+                <div className="flex flex-col items-center gap-1 cursor-pointer group" title="Data Flow — No active connections">
+                    <div className="w-10 h-10 rounded-md flex items-center justify-center bg-cyan-500/10 border border-cyan-500/20 group-hover:border-cyan-400/40 group-hover:bg-cyan-500/20 transition-all">
+                        <GitCompareArrows size={18} className="text-cyan-400 animate-pulse" />
+                    </div>
                 </div>
             );
         }
