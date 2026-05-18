@@ -982,7 +982,7 @@ export default function App() {
           </div>
         </nav>
 
-        <div className="flex grow overflow-hidden">
+        <div className="flex grow">
           {/* Life-cycle Rail */}
           <aside className="w-20 border-r border-border-subtle bg-panel-bg flex flex-col items-center py-8 gap-6 shrink-0 z-20 overflow-y-auto custom-scrollbar">
             <SidebarItem stage={LifecycleStage.EXPLORATION} icon={Compass} label="Expl" active={activeStage === LifecycleStage.EXPLORATION} onClick={() => setActiveStage(LifecycleStage.EXPLORATION)} />
