@@ -924,37 +924,40 @@ export default function App() {
       if (acronymMatches.length > 8) localResults.push(`\n*…and ${acronymMatches.length - 8} more matches.*`);
     }
 
+    // Show local results if found; otherwise attempt Gemini AI
     if (localResults.length > 0) {
       setAiResponse(localResults.join('\n'));
       setAiLoading(false);
-    }
-
-    // Attempt Gemini AI for deeper insights (optional enhancement)
-    try {
-      const geminiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      if (geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') {
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const prompt = `You are an expert Petroleum Engineering Advisor. The user is currently in the ${activeStage} stage of an oil and gas project. Answer the following technical query concisely with citations to SPE papers if applicable: ${query}`;
-        const result = await ai.models.generateContentStream({
-          model: 'gemini-2.5-flash',
-          contents: prompt
-        });
-        let aiText = '';
-        for await (const chunk of result) {
-          aiText += chunk.text;
+    } else {
+      // Attempt Gemini AI for deeper insights (only if no local results)
+      let geminiResponded = false;
+      try {
+        const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+        if (geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') {
+          const ai = new GoogleGenAI({ apiKey: geminiKey });
+          const prompt = `You are an expert Petroleum Engineering Advisor. The user is currently in the ${activeStage} stage of an oil and gas project. Answer the following technical query concisely with citations to SPE papers if applicable: ${query}`;
+          const result = await ai.models.generateContentStream({
+            model: 'gemini-2.5-flash',
+            contents: prompt
+          });
+          let aiText = '';
+          for await (const chunk of result) {
+            aiText += chunk.text;
+          }
+          if (aiText) {
+            setAiResponse(aiText);
+            geminiResponded = true;
+          }
         }
-        if (aiText) {
-          setAiResponse(prev => (prev ? prev + '\n\n---\n\n### 🤖 AI Advisor\n\n' + aiText : aiText));
-        }
+      } catch (_) {
+        // Gemini unavailable — fall through to no-results message
       }
-    } catch (_) {
-      // Gemini unavailable — local results already shown
-    }
 
-    if (!localResults.length && !aiResponse) {
-      setAiResponse('*No results found in the technical knowledge base. Try a different query (e.g., "Archie equation", "BHA", "Vogel IPR", "Gardner relation").*');
+      if (!geminiResponded) {
+        setAiResponse('*No results found in the technical knowledge base. Try a different query (e.g., "Archie equation", "BHA", "Vogel IPR", "Gardner relation").*');
+      }
+      setAiLoading(false);
     }
-    setAiLoading(false);
   };
 
   return (
@@ -1043,16 +1046,25 @@ export default function App() {
                 <h2 className="text-xs font-semibold tracking-widest uppercase text-text-secondary">Workspace / {activeStage}</h2>
               </div>
 
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary group-hover:text-brand-primary transition-colors" size={14} />
-                <input
-                  type="text"
-                  placeholder="Query Technical Knowledge Base..."
-                  className="pl-10 pr-4 py-2 bg-panel-bg border border-border-subtle rounded-xl text-xs font-mono text-text-primary focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/20 outline-none w-80 lg:w-[400px] transition-all"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
-                />
+              <div className="relative group flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary group-hover:text-brand-primary transition-colors" size={14} />
+                  <input
+                    type="text"
+                    placeholder="Query Technical Knowledge Base..."
+                    className="pl-10 pr-4 py-2 bg-panel-bg border border-border-subtle rounded-xl text-xs font-mono text-text-primary focus:border-brand-primary/50 focus:ring-1 focus:ring-brand-primary/20 outline-none w-80 lg:w-[400px] transition-all"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                  />
+                </div>
+                <button
+                  onClick={handleAiSearch}
+                  disabled={isAiLoading || !query.trim()}
+                  className="px-4 py-2 text-xs font-semibold bg-brand-primary/20 hover:bg-brand-primary/30 text-brand-primary border border-brand-primary/30 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                >
+                  {isAiLoading ? 'Searching...' : 'Search'}
+                </button>
               </div>
             </div>
 
