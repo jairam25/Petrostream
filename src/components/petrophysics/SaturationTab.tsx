@@ -18,6 +18,11 @@ interface SaturationTabProps {
   setSaturationInp: (v: any) => void;
 }
 
+const fmtSw = (v: number): string => {
+  if (Number.isNaN(v) || v == null) return '—';
+  return (v * 100).toFixed(1);
+};
+
 export const SaturationTab: React.FC<SaturationTabProps> = ({ saturationInp, setSaturationInp }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -141,26 +146,26 @@ export const SaturationTab: React.FC<SaturationTabProps> = ({ saturationInp, set
                 <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-4 italic">Resulting Sw ({saturationInp.method})</p>
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-7xl font-black italic text-white tracking-tighter">
-                    {Math.round((
+                    {fmtSw(
                       saturationInp.method === 'archie' ? calculateArchieSw(saturationInp.a, saturationInp.rw, saturationInp.phi, saturationInp.m, saturationInp.rt, saturationInp.n) :
                         saturationInp.method === 'indonesian' ? calculateIndonesianSw(saturationInp.vsh, saturationInp.rsh, saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.a, saturationInp.m, saturationInp.n) :
                           saturationInp.method === 'simandoux' ? calculateSimandouxSw(saturationInp.vsh, saturationInp.rsh, saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.a, saturationInp.m, saturationInp.n) :
                             saturationInp.method === 'dualwater' ? calculateDualWaterSw(saturationInp.phi, saturationInp.vsh, saturationInp.nphi_sh, saturationInp.rw, saturationInp.rwb, saturationInp.rt, saturationInp.m, saturationInp.n) :
                               calculateWaxmanSmitsSw(saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.m, saturationInp.n, saturationInp.qv, saturationInp.b)
-                    ) * 100)}
+                    )}
                   </span>
                   <span className="text-2xl font-black text-slate-600">%</span>
                 </div>
                 <div className="mt-8 pt-8 border-t border-white/5">
                   <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-2 italic">PORE VOLUME OIL (%)</p>
                   <div className="text-5xl font-black text-white italic tracking-tighter">
-                    {Math.round(100 - (
+                    {fmtSw(1 - (
                       saturationInp.method === 'archie' ? calculateArchieSw(saturationInp.a, saturationInp.rw, saturationInp.phi, saturationInp.m, saturationInp.rt, saturationInp.n) :
                         saturationInp.method === 'indonesian' ? calculateIndonesianSw(saturationInp.vsh, saturationInp.rsh, saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.a, saturationInp.m, saturationInp.n) :
                           saturationInp.method === 'simandoux' ? calculateSimandouxSw(saturationInp.vsh, saturationInp.rsh, saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.a, saturationInp.m, saturationInp.n) :
                             saturationInp.method === 'dualwater' ? calculateDualWaterSw(saturationInp.phi, saturationInp.vsh, saturationInp.nphi_sh, saturationInp.rw, saturationInp.rwb, saturationInp.rt, saturationInp.m, saturationInp.n) :
                               calculateWaxmanSmitsSw(saturationInp.phi, saturationInp.rw, saturationInp.rt, saturationInp.m, saturationInp.n, saturationInp.qv, saturationInp.b)
-                    ) * 100)}%
+                    ))}%
                   </div>
                 </div>
               </div>
@@ -176,7 +181,7 @@ export const SaturationTab: React.FC<SaturationTabProps> = ({ saturationInp, set
                 ].map(m => (
                   <div key={m.label} className="flex justify-between items-center text-[10px] font-bold text-slate-400 p-2 border-b border-white/5">
                     <span>{m.label}</span>
-                    <span className={cn("text-white font-mono", m.label.toLowerCase().includes(saturationInp.method) && "text-cyan-400 font-black")}>{(m.val * 100).toFixed(1)}%</span>
+                    <span className={cn("text-white font-mono", m.label.toLowerCase().includes(saturationInp.method) && "text-cyan-400 font-black")}>{fmtSw(m.val)}%</span>
                   </div>
                 ))}
               </div>

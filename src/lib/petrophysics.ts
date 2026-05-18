@@ -413,18 +413,21 @@ export function calculateSimandouxSw(vsh: number, rsh: number, phi: number, rw: 
 }
 
 export function calculateDualWaterSw(phi_t: number, vsh: number, nphi_sh: number, rw: number, rwb: number, rt: number, m: number, n: number): number {
-  if (rt <= 0 || phi_t <= 0) return 1;
-  // Guard against missing/zero parameters that cause NaN
-  const safeNphiSh = (nphi_sh == null || Number.isNaN(nphi_sh)) ? (vsh > 0 ? 0.35 : 0) : nphi_sh;
+  // Guard against NaN / invalid inputs — NaN <= 0 is false, so explicit NaN checks needed
+  if (Number.isNaN(rt) || Number.isNaN(phi_t) || Number.isNaN(rw) || Number.isNaN(m) || Number.isNaN(n)) return 1;
+  if (rt <= 0 || phi_t <= 0 || rw <= 0) return 1;
+  const safeVsh = Number.isNaN(vsh) || vsh == null ? 0 : Math.max(0, Math.min(1, vsh));
+  const safeNphiSh = (nphi_sh == null || Number.isNaN(nphi_sh)) ? (safeVsh > 0 ? 0.35 : 0) : nphi_sh;
   const safeRwb = (rwb == null || rwb <= 0 || Number.isNaN(rwb)) ? (rw * 4) : rwb; // bound water ~4x formation water resistivity
-  if (rw <= 0) return 1;
-  const swb = (vsh * safeNphiSh) / phi_t;
-  // Clamp swb to [0, 1] to avoid division by zero or negative effective Rw
+  if (phi_t <= 0) return 1;
+  const swb = (safeVsh * safeNphiSh) / phi_t;
+  // Clamp swb to [0, 1] to avoid division by zero in effective Rw
   const clampedSwb = Math.max(0, Math.min(1, swb));
   if (clampedSwb >= 1) return 1; // 100% bound water
   const rw_eff = 1 / ((1 - clampedSwb) / rw + clampedSwb / safeRwb);
   const sw_t = Math.pow((rw_eff / (Math.pow(phi_t, m) * rt)), 1 / n);
-  return Math.max(0, Math.min(1, sw_t));
+  const result = Math.max(0, Math.min(1, sw_t));
+  return Number.isNaN(result) ? 1 : result;
 }
 
 /**
@@ -432,22 +435,26 @@ export function calculateDualWaterSw(phi_t: number, vsh: number, nphi_sh: number
  * 1/Rt = (Sw^n / F*) * (1/Rw + B*Qv/Sw)
  */
 export function calculateWaxmanSmitsSw(phi: number, rw: number, rt: number, m: number, n: number, qv: number, b: number): number {
-  if (rt <= 0 || phi <= 0) return 1;
+  // Guard against NaN inputs — NaN <= 0 is false, explicit checks needed
+  if (Number.isNaN(rt) || Number.isNaN(phi) || Number.isNaN(rw) || Number.isNaN(m) || Number.isNaN(n) || Number.isNaN(qv)) return 1;
+  if (rt <= 0 || phi <= 0 || rw <= 0) return 1;
   // F* is the shaly sand formation factor
   const f_star = 1 / Math.pow(phi, m);
+  const safeB = Number.isNaN(b) || b <= 0 ? 2.0 : b;
 
-  // Numerical approximation for Sw (Newton-Raphson would be better, but we iterate)
+  // Numerical approximation for Sw
   let sw = 0.5;
-  for (let i = 0; i < 10; i++) {
-    const conductivity = (Math.pow(sw, n) / (f_star * rw)) * (1 + (rw * b * qv / sw));
+  for (let i = 0; i < 15; i++) {
+    const conductivity = (Math.pow(sw, n) / (f_star * rw)) * (1 + (rw * safeB * qv / sw));
     const rt_calc = 1 / (conductivity || 0.0001);
+    if (Number.isNaN(rt_calc)) break;
     const diff = rt_calc - rt;
     if (Math.abs(diff) < 0.001) break;
-    // Simple update step
     sw = sw * Math.pow(rt_calc / rt, 1 / n);
-    sw = Math.max(0.01, Math.min(1, sw));
+    sw = Math.max(0.001, Math.min(1, sw));
   }
-  return Math.max(0, Math.min(1, sw));
+  const result = Math.max(0, Math.min(1, sw));
+  return Number.isNaN(result) ? 1 : result;
 }
 
 // --- Rw DETERMINATION ---
