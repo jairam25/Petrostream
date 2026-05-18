@@ -184,6 +184,7 @@ const RefiningStage = React.lazy(() => import('./components/refining/RefiningSta
 const RetailStage = React.lazy(() => import('./components/retail/RetailStage').then(m => ({ default: m.default })));
 const MidstreamStage = React.lazy(() => import('./components/midstream/MidstreamStage').then(m => ({ default: m.default })));
 const DistributionStage = React.lazy(() => import('./components/distribution/DistributionStage').then(m => ({ default: m.default })));
+const LibraryStage = React.lazy(() => import('./components/library/LibraryStage').then(m => ({ default: m.default })));
 
 import { InputWithSlider } from './components/SharedUI';
 import {
@@ -1124,6 +1125,7 @@ export default function App() {
               {activeStage === LifecycleStage.RETAIL && <RetailStage />}
               {activeStage === LifecycleStage.MIDSTREAM && <MidstreamStage />}
               {activeStage === LifecycleStage.DISTRIBUTION && <DistributionStage />}
+              {activeStage === LifecycleStage.LIBRARY && <LibraryStage />}
             </React.Suspense>
           </main>
         </div>
