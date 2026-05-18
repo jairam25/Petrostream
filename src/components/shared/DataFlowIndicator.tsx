@@ -10,7 +10,7 @@
  * via the onNavigateStage callback.
  */
 import React, { useMemo } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, GitCompareArrows } from 'lucide-react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { connectionLabel, STAGE_TO_LAYER } from '../../store/connectionUtils';
 import type { ConnectionKey, ConnectionStatus } from '../../store/types';
@@ -75,9 +75,16 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
     };
 
     if (!layer && upstream.length === 0 && downstream.length === 0) {
-        if (compact) return null;
+        if (compact) {
+            return (
+                <div className="flex flex-col items-center gap-1 text-slate-500" title="No data connections for this stage">
+                    <GitCompareArrows size={18} className="opacity-40" />
+                </div>
+            );
+        }
         return (
-            <div className="text-xs text-slate-500 italic px-2 py-1">
+            <div className="flex items-center gap-2 text-xs text-slate-500 italic px-2 py-1">
+                <GitCompareArrows size={14} className="opacity-50" />
                 No data connections for this stage.
             </div>
         );
@@ -139,7 +146,13 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
         const yellowCount = [...upstream, ...downstream].filter(c => c.status === 'yellow').length;
         const redCount = [...upstream, ...downstream].filter(c => c.status === 'red').length;
         const total = greenCount + yellowCount + redCount;
-        if (total === 0) return null;
+        if (total === 0) {
+            return (
+                <div className="flex flex-col items-center gap-1 text-slate-500" title="No active data connections">
+                    <GitCompareArrows size={18} className="opacity-40" />
+                </div>
+            );
+        }
 
         return (
             <div className="flex items-center gap-1.5 text-[10px]">
