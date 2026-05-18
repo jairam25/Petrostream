@@ -231,6 +231,7 @@ import {
   calculateCementHydrostatic,
   DRILLING_PAPERS
 } from './lib/drilling';
+import { ACRONYM_DATABASE } from './lib/glossaryAcronyms';
 import {
   LOGGING_TOOLS,
   POROSITY_TRANSFORMS,
@@ -891,28 +892,69 @@ export default function App() {
   const calculatedBouguer = useMemo(() => 0.04193 * crustDensity * elevation, [crustDensity, elevation]);
 
   const handleAiSearch = async () => {
-    if (!query) return;
+    if (!query.trim()) return;
+    const q = query.trim().toLowerCase();
     setAiLoading(true);
     setAiResponse('');
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const prompt = `You are an expert Petroleum Engineering Advisor. The user is currently in the ${activeStage} stage of an oil and gas project. 
-      Answer the following technical query with citations to SPE papers if applicable: ${query}`;
 
-      const result = await ai.models.generateContentStream({
-        model: "gemini-3.1-pro-preview",
-        contents: prompt
+    // Local knowledge-base search (always runs first for instant results)
+    const localResults: string[] = [];
+
+    // Search academic reference library
+    const refMatches = ACADEMIC_LIBRARY.filter(
+      r => r.title.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q) || r.tags.some(t => t.toLowerCase().includes(q)) || r.authors.toLowerCase().includes(q) || r.topic.toLowerCase().includes(q)
+    );
+    if (refMatches.length > 0) {
+      localResults.push(`### 📚 Academic References (${refMatches.length} match${refMatches.length > 1 ? 'es' : ''})\n`);
+      refMatches.slice(0, 5).forEach(r => {
+        localResults.push(`- **${r.title}** (${r.authors}, ${r.year}) — *${r.topic}*  \n  ${r.summary}\n  \`${r.citation}\``);
       });
+      if (refMatches.length > 5) localResults.push(`\n*…and ${refMatches.length - 5} more matches.*`);
+    }
 
-      for await (const chunk of result) {
-        setAiResponse(prev => prev + chunk.text);
-      }
-    } catch (error) {
-      console.error(error);
-      setAiResponse("Search failed. Ensure your GEMINI_API_KEY is configured.");
-    } finally {
+    // Search glossary / acronym database
+    const acronymMatches = ACRONYM_DATABASE.filter(
+      a => a.acronym.toLowerCase().includes(q) || a.fullName.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)
+    );
+    if (acronymMatches.length > 0) {
+      localResults.push(`\n### 🔤 Glossary / Acronyms (${acronymMatches.length} match${acronymMatches.length > 1 ? 'es' : ''})\n`);
+      acronymMatches.slice(0, 8).forEach(a => {
+        localResults.push(`- **${a.acronym}** — ${a.fullName}  \n  ${a.description}  \n  *Category: ${a.category}*`);
+      });
+      if (acronymMatches.length > 8) localResults.push(`\n*…and ${acronymMatches.length - 8} more matches.*`);
+    }
+
+    if (localResults.length > 0) {
+      setAiResponse(localResults.join('\n'));
       setAiLoading(false);
     }
+
+    // Attempt Gemini AI for deeper insights (optional enhancement)
+    try {
+      const geminiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+      if (geminiKey && geminiKey !== 'MY_GEMINI_API_KEY') {
+        const ai = new GoogleGenAI({ apiKey: geminiKey });
+        const prompt = `You are an expert Petroleum Engineering Advisor. The user is currently in the ${activeStage} stage of an oil and gas project. Answer the following technical query concisely with citations to SPE papers if applicable: ${query}`;
+        const result = await ai.models.generateContentStream({
+          model: 'gemini-2.5-flash',
+          contents: prompt
+        });
+        let aiText = '';
+        for await (const chunk of result) {
+          aiText += chunk.text;
+        }
+        if (aiText) {
+          setAiResponse(prev => (prev ? prev + '\n\n---\n\n### 🤖 AI Advisor\n\n' + aiText : aiText));
+        }
+      }
+    } catch (_) {
+      // Gemini unavailable — local results already shown
+    }
+
+    if (!localResults.length && !aiResponse) {
+      setAiResponse('*No results found in the technical knowledge base. Try a different query (e.g., "Archie equation", "BHA", "Vogel IPR", "Gardner relation").*');
+    }
+    setAiLoading(false);
   };
 
   return (
@@ -1013,6 +1055,23 @@ export default function App() {
                 />
               </div>
             </div>
+
+            {/* Knowledge Base Results Panel */}
+            {(isAiLoading || aiResponse) && (
+              <div className="mb-8 p-5 bg-panel-bg border border-border-subtle rounded-xl max-h-[360px] overflow-y-auto custom-scrollbar">
+                {isAiLoading && (
+                  <div className="flex items-center gap-3 text-text-secondary text-xs">
+                    <div className="w-4 h-4 border-2 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin" />
+                    <span>Searching knowledge base...</span>
+                  </div>
+                )}
+                {aiResponse && (
+                  <div className="prose prose-invert prose-xs max-w-none text-text-secondary text-xs leading-relaxed">
+                    <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            )}
             <React.Suspense fallback={
               <div className="flex-1 flex items-center justify-center bg-panel-bg h-full">
                 <div className="flex flex-col items-center gap-4">
