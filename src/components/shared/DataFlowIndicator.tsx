@@ -9,7 +9,8 @@
  * Badges are clickable — they navigate to the corresponding stage
  * via the onNavigateStage callback.
  */
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowRight, GitCompareArrows, X } from 'lucide-react';
 import { useSimulationStore } from '../../store/simulationStore';
 import { connectionLabel, STAGE_TO_LAYER } from '../../store/connectionUtils';
@@ -53,12 +54,29 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
     const layer = STAGE_TO_LAYER[stageKey];
     const [popupOpen, setPopupOpen] = useState(false);
     const popupRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+    // Calculate popup position when opening
+    const openPopup = useCallback(() => {
+        if (buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setPopupPos({
+                top: Math.max(8, rect.top - 200),
+                left: rect.right + 12,
+            });
+        }
+        setPopupOpen(prev => !prev);
+    }, []);
 
     // Close popup on outside click
     useEffect(() => {
         if (!popupOpen) return;
         const handler = (e: MouseEvent) => {
-            if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+            const target = e.target as Node;
+            const insidePopup = popupRef.current && popupRef.current.contains(target);
+            const insideButton = buttonRef.current && buttonRef.current.contains(target);
+            if (!insidePopup && !insideButton) {
                 setPopupOpen(false);
             }
         };
@@ -159,8 +177,9 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
             <div className="relative" ref={popupRef}>
                 {/* Clickable icon button */}
                 <button
+                    ref={buttonRef}
                     type="button"
-                    onClick={() => setPopupOpen(!popupOpen)}
+                    onClick={openPopup}
                     className="flex flex-col items-center gap-1 group focus:outline-none"
                     title="Data Flow Connections"
                 >
@@ -182,9 +201,13 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
                     )}
                 </button>
 
-                {/* Floating popup panel */}
-                {popupOpen && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl shadow-black/50 z-50 overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                {/* Floating popup panel — rendered via portal to escape sidebar overflow */}
+                {popupOpen && createPortal(
+                    <div
+                        ref={popupRef}
+                        className="fixed w-72 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl shadow-black/60 z-[9999] overflow-hidden"
+                        style={{ top: popupPos.top, left: popupPos.left }}
+                    >
                         {/* Header */}
                         <div className="flex items-center justify-between px-3 py-2 border-b border-slate-700 bg-slate-800/80">
                             <div className="flex items-center gap-2">
@@ -245,7 +268,8 @@ export default function DataFlowIndicator({ activeStage, compact = false, onNavi
                             <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-yellow-500" />Stale</span>
                             <span className="flex items-center gap-1"><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />No data</span>
                         </div>
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
         );
