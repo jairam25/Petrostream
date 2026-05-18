@@ -62,6 +62,7 @@ import {
   CalendarDays,
   Factory,
   Anchor,
+  Workflow,
   LayoutDashboard,
   Stethoscope,
   Network,
@@ -995,7 +996,7 @@ export default function App() {
             <SidebarItem stage={LifecycleStage.REFINING_ADV} icon={Factory} label="Refn" active={activeStage === LifecycleStage.REFINING_ADV} onClick={() => setActiveStage(LifecycleStage.REFINING_ADV)} />
             <SidebarItem stage={LifecycleStage.RETAIL} icon={ShoppingCart} label="Retail" active={activeStage === LifecycleStage.RETAIL} onClick={() => setActiveStage(LifecycleStage.RETAIL)} />
             <SidebarItem stage={LifecycleStage.LEASING} icon={Landmark} label="Lease" active={activeStage === LifecycleStage.LEASING} onClick={() => setActiveStage(LifecycleStage.LEASING)} />
-            <SidebarItem stage={LifecycleStage.MIDSTREAM} icon={Anchor} label="Mid" active={activeStage === LifecycleStage.MIDSTREAM} onClick={() => setActiveStage(LifecycleStage.MIDSTREAM)} />
+            <SidebarItem stage={LifecycleStage.MIDSTREAM} icon={Workflow} label="Mid" active={activeStage === LifecycleStage.MIDSTREAM} onClick={() => setActiveStage(LifecycleStage.MIDSTREAM)} />
             <SidebarItem stage={LifecycleStage.DISTRIBUTION} icon={Network} label="Dist" active={activeStage === LifecycleStage.DISTRIBUTION} onClick={() => setActiveStage(LifecycleStage.DISTRIBUTION)} />
 
             <div className="mt-auto flex flex-col items-center gap-6 pb-4">
