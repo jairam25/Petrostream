@@ -40,7 +40,6 @@ export function ProspectNeuralSimulator() {
 
    const setFactor = useCallback((key: keyof typeof factors, value: number) => {
       const newCos = { ...cos, [key]: value, pg: 1 };
-      // recompute pg from all 5 factors
       const allFactors = { source: cos.source, reservoir: cos.reservoir, trap: cos.trap, seal: cos.seal, migration: cos.migration };
       allFactors[key] = value;
       newCos.pg = Object.values(allFactors).reduce((acc, v) => acc * v, 1);
@@ -96,7 +95,6 @@ export function ProspectNeuralSimulator() {
    }, [update]);
 
    const handleOptimize = useCallback(() => {
-      // Set all risk factors to their optimal values (1.0 = maximum confidence)
       const optimalCos = {
          source: 1.0,
          reservoir: 1.0,
@@ -114,7 +112,7 @@ export function ProspectNeuralSimulator() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-8 bg-panel-bg border border-border-subtle rounded-3xl shadow-2xl relative overflow-hidden group mb-8">
          <div className="absolute -top-24 -right-24 w-96 h-96 bg-brand-primary/5 rounded-full blur-[120px] pointer-events-none" />
 
-         {/* Control Panel */}
+         {/* Control Panel – always visible, with eye toggle */}
          <div className="lg:col-span-3 space-y-6 relative z-10">
             <div className="flex items-center gap-3 mb-2">
                <div className="w-10 h-10 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary">
@@ -133,61 +131,67 @@ export function ProspectNeuralSimulator() {
                </button>
             </div>
 
-            {showRiskPanel && (
-               <>
-                  <SampleDataLoader loadSample={handleLoadSample} label="Load Sample Prospect" stageName="Exploration" />
+            {/* Load Sample Prospect – always visible */}
+            <SampleDataLoader loadSample={handleLoadSample} label="Load Sample Prospect" stageName="Exploration" />
 
-                  <div className="space-y-4">
-                     <RiskInput label="Source Presence" value={factors.source} onChange={v => setFactor('source', v)} />
-                     <RiskInput label="Reservoir Quality" value={factors.reservoir} onChange={v => setFactor('reservoir', v)} />
-                     <RiskInput label="Trap Geometry" value={factors.trap} onChange={v => setFactor('trap', v)} />
-                     <RiskInput label="Seal Integrity" value={factors.seal} onChange={v => setFactor('seal', v)} />
-                     <RiskInput label="Migration Timing" value={factors.migration} onChange={v => setFactor('migration', v)} />
-                  </div>
-               </>
+            {/* Risk sliders – toggled by eye */}
+            {showRiskPanel && (
+               <div className="space-y-4">
+                  <RiskInput label="Source Presence" value={factors.source} onChange={v => setFactor('source', v)} />
+                  <RiskInput label="Reservoir Quality" value={factors.reservoir} onChange={v => setFactor('reservoir', v)} />
+                  <RiskInput label="Trap Geometry" value={factors.trap} onChange={v => setFactor('trap', v)} />
+                  <RiskInput label="Seal Integrity" value={factors.seal} onChange={v => setFactor('seal', v)} />
+                  <RiskInput label="Migration Timing" value={factors.migration} onChange={v => setFactor('migration', v)} />
+               </div>
             )}
          </div>
 
-         {/* Main Display */}
-         <div className="lg:col-span-6 flex flex-col gap-6 relative z-10">
-            <div className="grid grid-cols-2 gap-6 flex-1">
-               <div className="p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col items-center justify-center text-center">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Probability of Success (Pg)</p>
-                  <h4 className={cn(
-                     "text-6xl font-black italic tracking-tighter transition-colors",
-                     pg > 0.3 ? "text-emerald-400" : pg > 0.15 ? "text-amber-400" : "text-rose-400"
-                  )}>
-                     {(pg * 100).toFixed(1)}
-                     <span className="text-xs text-slate-500 not-italic ml-2">%</span>
-                  </h4>
-                  <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-brand-primary/10 rounded-full border border-brand-primary/20">
-                     <Activity size={12} className="text-brand-primary" />
-                     <span className="text-[11px] font-black text-brand-primary uppercase italic">Confidence: 94.2%</span>
+         {/* Main Display – Pg + Risk Profile toggled by eye */}
+         <div className={showRiskPanel ? "lg:col-span-6 flex flex-col gap-6 relative z-10" : "lg:col-span-9 flex flex-col gap-6 relative z-10"}>
+            {showRiskPanel ? (
+               <div className="grid grid-cols-2 gap-6 flex-1">
+                  <div className="p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col items-center justify-center text-center">
+                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Probability of Success (Pg)</p>
+                     <h4 className={cn(
+                        "text-6xl font-black italic tracking-tighter transition-colors",
+                        pg > 0.3 ? "text-emerald-400" : pg > 0.15 ? "text-amber-400" : "text-rose-400"
+                     )}>
+                        {(pg * 100).toFixed(1)}
+                        <span className="text-xs text-slate-500 not-italic ml-2">%</span>
+                     </h4>
+                     <div className="mt-6 flex items-center gap-2 px-4 py-1.5 bg-brand-primary/10 rounded-full border border-brand-primary/20">
+                        <Activity size={12} className="text-brand-primary" />
+                        <span className="text-[11px] font-black text-brand-primary uppercase italic">Confidence: 94.2%</span>
+                     </div>
                   </div>
-               </div>
 
-               <div className="p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col overflow-hidden">
-                  <div className="flex justify-between items-center mb-2">
-                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Risk Profile</p>
-                     <ShieldCheck size={14} className="text-brand-primary" />
-                  </div>
-                  <div className="flex-1 min-h-[140px] -mt-4 scale-110">
-                     <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                           <PolarGrid stroke="#ffffff10" />
-                           <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 8, fontWeight: 'bold' }} />
-                           <Radar
-                              name="Risk"
-                              dataKey="A"
-                              stroke="#0ea5e9"
-                              fill="#0ea5e9"
-                              fillOpacity={0.3}
-                           />
-                        </RadarChart>
-                     </ResponsiveContainer>
+                  <div className="p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col overflow-hidden">
+                     <div className="flex justify-between items-center mb-2">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Risk Profile</p>
+                        <ShieldCheck size={14} className="text-brand-primary" />
+                     </div>
+                     <div className="flex-1 min-h-[140px] -mt-4 scale-110">
+                        <ResponsiveContainer width="100%" height="100%">
+                           <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                              <PolarGrid stroke="#ffffff10" />
+                              <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 8, fontWeight: 'bold' }} />
+                              <Radar
+                                 name="Risk"
+                                 dataKey="A"
+                                 stroke="#0ea5e9"
+                                 fill="#0ea5e9"
+                                 fillOpacity={0.3}
+                              />
+                           </RadarChart>
+                        </ResponsiveContainer>
+                     </div>
                   </div>
                </div>
-            </div>
+            ) : (
+               <div className="flex-1 flex items-center justify-center">
+                  <p className="text-xs text-slate-600 font-mono uppercase tracking-widest">Click the eye icon to reveal risk panels</p>
+               </div>
+            )}
 
             <div className="p-8 bg-black/40 border border-white/5 rounded-3xl h-44 flex flex-col relative overflow-hidden">
                <div className="absolute top-6 left-8 z-10">
@@ -200,33 +204,35 @@ export function ProspectNeuralSimulator() {
             </div>
          </div>
 
-         {/* Analytics */}
-         <div className="lg:col-span-3 space-y-6 relative z-10">
-            <div className="p-6 bg-white/5 border border-white/5 rounded-2xl h-full flex flex-col">
-               <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-6 italic">Strategic Insight</h4>
-               <div className="space-y-6 flex-1">
-                  <MetricRow label="Play Fairway" value="High Graded" status="good" />
-                  <MetricRow label="DHI Anomaly" value="Bright Spot" status="info" />
-                  <MetricRow label="Seal Risk" value="Caprock Failure" status="warning" />
-               </div>
+         {/* Analytics – Strategic Insight panel, toggled by eye */}
+         {showRiskPanel && (
+            <div className="lg:col-span-3 space-y-6 relative z-10">
+               <div className="p-6 bg-white/5 border border-white/5 rounded-2xl h-full flex flex-col">
+                  <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-6 italic">Strategic Insight</h4>
+                  <div className="space-y-6 flex-1">
+                     <MetricRow label="Play Fairway" value="High Graded" status="good" />
+                     <MetricRow label="DHI Anomaly" value="Bright Spot" status="info" />
+                     <MetricRow label="Seal Risk" value="Caprock Failure" status="warning" />
+                  </div>
 
-               <button
-                  onClick={handleOptimize}
-                  className={cn(
-                     "w-full mt-8 py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:scale-[0.98] transition-all flex items-center justify-center gap-2 italic shadow-lg",
-                     optimized
-                        ? "bg-emerald-600 text-white shadow-emerald-600/20"
-                        : "bg-brand-primary text-white shadow-brand-primary/20"
-                  )}
-               >
-                  {optimized ? (
-                     <>Target Optimized <Target size={14} /></>
-                  ) : (
-                     <>Optimize Drilling Target <ChevronRight size={14} /></>
-                  )}
-               </button>
+                  <button
+                     onClick={handleOptimize}
+                     className={cn(
+                        "w-full mt-8 py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:scale-[0.98] transition-all flex items-center justify-center gap-2 italic shadow-lg",
+                        optimized
+                           ? "bg-emerald-600 text-white shadow-emerald-600/20"
+                           : "bg-brand-primary text-white shadow-brand-primary/20"
+                     )}
+                  >
+                     {optimized ? (
+                        <>Target Optimized <Target size={14} /></>
+                     ) : (
+                        <>Optimize Drilling Target <ChevronRight size={14} /></>
+                     )}
+                  </button>
+               </div>
             </div>
-         </div>
+         )}
       </div>
    );
 }
